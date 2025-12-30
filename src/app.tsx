@@ -121,6 +121,14 @@ export function App() {
     };
   }, [isPlaying, intervalMs, maxLen]);
 
+  // Clamp the global index if track set/length changes.
+  useEffect(() => {
+    setWordIndex((i) => {
+      if (!maxLen) return 0;
+      return Math.min(i, Math.max(0, maxLen - 1));
+    });
+  }, [maxLen]);
+
   // Keyboard shortcuts: Space play/pause, ArrowRight next, ArrowLeft prev
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -137,6 +145,10 @@ export function App() {
   }, [maxLen]);
 
   const anyLoaded = tracks.some((t) => t.words.length > 0);
+
+  useEffect(() => {
+    if (isPlaying && !anyLoaded) setIsPlaying(false);
+  }, [isPlaying, anyLoaded]);
 
   return (
     <div class="container">

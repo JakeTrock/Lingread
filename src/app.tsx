@@ -224,6 +224,7 @@ export function App() {
 
   const [wpm, setWpm] = useState<number>(300);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   const intervalMs = useMemo(() => Math.round(60000 / clamp(wpm, 60, 2000)), [wpm]);
   const maxLen = useMemo(() => tracks.reduce((m, t) => Math.max(m, t.words.length), 0), [tracks]);
@@ -279,7 +280,7 @@ export function App() {
 
   // Playback timer
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || isSeeking) return;
     if (timerRef.current != null) window.clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => {
       setWordIndex((i) => {
@@ -295,7 +296,7 @@ export function App() {
       if (timerRef.current != null) window.clearInterval(timerRef.current);
       timerRef.current = null;
     };
-  }, [isPlaying, intervalMs, maxLen]);
+  }, [isPlaying, isSeeking, intervalMs, maxLen]);
 
   // Clamp the global index if track set/length changes.
   useEffect(() => {
@@ -325,6 +326,12 @@ export function App() {
   useEffect(() => {
     if (isPlaying && !anyLoaded) setIsPlaying(false);
   }, [isPlaying, anyLoaded]);
+
+  const progressPct = useMemo(() => {
+    if (!maxLen) return 0;
+    if (maxLen <= 1) return 100;
+    return Math.round((wordIndex / (maxLen - 1)) * 100);
+  }, [wordIndex, maxLen]);
 
   return (
     <div class="container">
@@ -400,14 +407,13 @@ export function App() {
         {tracks.map((t, idx) => {
           const effectiveIndex = t.words.length ? clamp(wordIndex, 0, Math.max(0, t.words.length - 1)) : 0;
           const current = t.words[effectiveIndex] ?? '';
-          const progress = t.words.length ? `${Math.min(wordIndex + 1, t.words.length)}/${t.words.length}` : '—';
           return (
             <div class="panel track" key={t.id}>
               <div class="track-head">
                 <div class="track-title">
                   <strong>{t.name || `Track ${idx + 1}`}</strong>
                   <span>
-                    {t.words.length ? `${t.words.length.toLocaleString()} words` : 'No file loaded'} • progress {progress}
+                    {t.words.length ? `${t.words.length.toLocaleString()} words` : 'No file loaded'}
                   </span>
                 </div>
                 <div class="control-row">
@@ -433,8 +439,6 @@ export function App() {
                   {current ? renderOrpWord(current) : <span style={{ color: 'var(--muted)' }}>Load a .txt file…</span>}
                 </div>
                 <div class="meta">
-                  <span>Unified index: {maxLen ? `${wordIndex + 1}/${maxLen}` : '—'}</span>
-                  <span>•</span>
                   <span>{isPlaying ? 'Playing' : 'Paused'}</span>
                 </div>
               </div>
@@ -452,6 +456,26 @@ export function App() {
           Tip: press <strong>Space</strong> to play/pause, <strong>→</strong> for next, <strong>←</strong> for previous. All tracks advance
           together at the same WPM.
         </div>
+      </div>
+
+      <div class="bottom-bar panel" aria-label="Progress">
+        <div class="bottom-bar-row">
+          <span class="badge">Progress {progressPct}%</span>
+          <span class="badge">{isSeeking ? 'Seeking…' : isPlaying ? 'Playing' : 'Paused'}</span>
+        </div>
+        <input
+          class="progress-slider"
+          type="range"
+          min={0}
+          max={Math.max(0, maxLen - 1)}
+          step={1}
+          value={Math.min(wordIndex, Math.max(0, maxLen - 1))}
+          disabled={!anyLoaded || maxLen <= 1}
+          onPointerDown={() => setIsSeeking(true)}
+          onPointerUp={() => setIsSeeking(false)}
+          onPointerCancel={() => setIsSeeking(false)}
+          onInput={(e) => setWordIndex((e.currentTarget as HTMLInputElement).valueAsNumber || 0)}
+        />
       </div>
     </div>
   );

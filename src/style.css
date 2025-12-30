@@ -259,6 +259,31 @@ select:focus {
   font-size: 12px;
 }
 
+.bottom-bar {
+  position: sticky;
+  bottom: 12px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.bottom-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.progress-slider {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.progress-slider:disabled {
+  opacity: 0.6;
+}
+
 .resume-dialog {
   width: min(860px, calc(100vw - 24px));
   border: 1px solid var(--border);

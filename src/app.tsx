@@ -225,6 +225,7 @@ export function App() {
   const [wpm, setWpm] = useState<number>(300);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement));
 
   const intervalMs = useMemo(() => Math.round(60000 / clamp(wpm, 60, 2000)), [wpm]);
   const maxLen = useMemo(() => tracks.reduce((m, t) => Math.max(m, t.words.length), 0), [tracks]);
@@ -326,6 +327,33 @@ export function App() {
   useEffect(() => {
     if (isPlaying && !anyLoaded) setIsPlaying(false);
   }, [isPlaying, anyLoaded]);
+
+  // Fullscreen state + body class for fullscreen UI
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    onFsChange();
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('fullscreen-mode', isFullscreen);
+    return () => document.body.classList.remove('fullscreen-mode');
+  }, [isFullscreen]);
+
+  async function enterOrExitFullscreen() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch {
+      // Ignore (e.g. denied by browser or not supported)
+    }
+  }
 
   const progressPct = useMemo(() => {
     if (!maxLen) return 0;
@@ -446,7 +474,7 @@ export function App() {
           );
         })}
 
-        <div class="control-row">
+        <div class="control-row add-track-row">
           <button class="btn primary" onClick={addTrack} title="Add another track">
             + Add track
           </button>
@@ -459,10 +487,17 @@ export function App() {
       </div>
 
       <div class="bottom-bar panel" aria-label="Progress">
-        <div class="bottom-bar-row">
-          <span class="badge">Progress {progressPct}%</span>
-          <span class="badge">{isSeeking ? 'Seeking…' : isPlaying ? 'Playing' : 'Paused'}</span>
-        </div>
+        {!isFullscreen ? (
+          <div class="bottom-bar-row">
+            <span class="badge">Progress {progressPct}%</span>
+            <div class="control-row" style={{ justifyContent: 'flex-end' }}>
+              <span class="badge">{isSeeking ? 'Seeking…' : isPlaying ? 'Playing' : 'Paused'}</span>
+              <button class="btn" onClick={enterOrExitFullscreen} title="Enter fullscreen">
+                Fullscreen
+              </button>
+            </div>
+          </div>
+        ) : null}
         <input
           class="progress-slider"
           type="range"

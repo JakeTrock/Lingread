@@ -284,6 +284,58 @@ select:focus {
   opacity: 0.6;
 }
 
+/* Fullscreen "reader only" mode */
+body.fullscreen-mode {
+  overflow: hidden;
+}
+
+body.fullscreen-mode .topbar,
+body.fullscreen-mode .controls,
+body.fullscreen-mode .track-head,
+body.fullscreen-mode .meta,
+body.fullscreen-mode .add-track-row,
+body.fullscreen-mode .hint {
+  display: none !important;
+}
+
+body.fullscreen-mode .container {
+  max-width: none;
+  padding: 18px 18px 90px;
+}
+
+body.fullscreen-mode .tracks {
+  margin-top: 0;
+}
+
+body.fullscreen-mode .track {
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+body.fullscreen-mode .focus-word {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+
+body.fullscreen-mode .bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  padding: 14px 16px;
+}
+
+body.fullscreen-mode .progress-slider {
+  accent-color: var(--danger);
+}
+
 .resume-dialog {
   width: min(860px, calc(100vw - 24px));
   border: 1px solid var(--border);

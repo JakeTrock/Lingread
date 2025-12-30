@@ -511,6 +511,12 @@ export function App() {
           onInput={(e) => setWordIndex((e.currentTarget as HTMLInputElement).valueAsNumber || 0)}
         />
       </div>
+
+      {isFullscreen ? (
+        <button class="btn fs-exit-btn" onClick={enterOrExitFullscreen} title="Exit fullscreen">
+          Exit
+        </button>
+      ) : null}
     </div>
   );
 }

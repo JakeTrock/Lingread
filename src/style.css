@@ -349,6 +349,18 @@ body.fullscreen-mode .progress-slider {
   accent-color: var(--danger);
 }
 
+body.fullscreen-mode .fs-exit-btn {
+  position: fixed;
+  left: 14px;
+  bottom: 70px; /* sits above the progress bar */
+  z-index: 50;
+  border-color: color-mix(in oklab, var(--danger), var(--border) 40%);
+  background: color-mix(in oklab, var(--danger), var(--creamYellow) 88%);
+  color: color-mix(in oklab, var(--base03), black 20%);
+  padding: 10px 12px;
+  border-radius: 999px;
+}
+
 .resume-dialog {
   width: min(860px, calc(100vw - 24px));
   border: 1px solid var(--border);

@@ -366,7 +366,6 @@ export function App() {
       <div class="topbar">
         <div class="brand">
           <h1>Speedreader</h1>
-          <span class="badge">multi-track • solarized</span>
         </div>
         <a href="https://github.com/" target="_blank" rel="noreferrer" style={{ display: 'none' }}>
           {/* placeholder */}

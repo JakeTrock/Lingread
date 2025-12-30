@@ -227,6 +227,17 @@ export function App() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(() => Boolean(document.fullscreenElement));
 
+  // Use U+FE0E (VARIATION SELECTOR-15) to force *text* presentation (avoid emoji rendering).
+  const ICONS = {
+    play: '▶\uFE0E',
+    pause: '⏸\uFE0E',
+    restart: '↻\uFE0E',
+    fullscreen: '⤢\uFE0E',
+    prev: '⏮\uFE0E',
+    next: '⏭\uFE0E',
+    remove: '✕\uFE0E',
+  } as const;
+
   const intervalMs = useMemo(() => Math.round(60000 / clamp(wpm, 60, 2000)), [wpm]);
   const maxLen = useMemo(() => tracks.reduce((m, t) => Math.max(m, t.words.length), 0), [tracks]);
   const canAdvance = wordIndex < Math.max(0, maxLen - 1);
@@ -307,7 +318,7 @@ export function App() {
     });
   }, [maxLen]);
 
-  // Keyboard shortcuts: Space play/pause, ArrowRight next, ArrowLeft prev
+  // Keyboard shortcuts: Space toggles ▶︎/⏸︎, ArrowRight ⏭︎, ArrowLeft ⏮︎
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === ' ' || e.code === 'Space') {
@@ -374,17 +385,22 @@ export function App() {
 
       <div class="panel controls">
         <div class="control-row">
-          <button class={`btn ${isPlaying ? '' : 'primary'}`} onClick={() => setIsPlaying((p) => !p)} disabled={!anyLoaded}>
-            {isPlaying ? 'Pause' : 'Play'}
+          <button
+            class={`btn icon ${isPlaying ? '' : 'primary'}`}
+            onClick={() => setIsPlaying((p) => !p)}
+            disabled={!anyLoaded}
+            title={`Toggle ${ICONS.play}/${ICONS.pause}`}
+          >
+            {isPlaying ? ICONS.pause : ICONS.play}
           </button>
-          <button class="btn" onClick={prevWord} disabled={!anyLoaded || !canRewind}>
-            Prev
+          <button class="btn icon" onClick={prevWord} disabled={!anyLoaded || !canRewind}>
+            {ICONS.prev}
           </button>
-          <button class="btn primary" onClick={nextWord} disabled={!anyLoaded || !canAdvance}>
-            Next
+          <button class="btn primary icon" onClick={nextWord} disabled={!anyLoaded || !canAdvance}>
+            {ICONS.next}
           </button>
-          <button class="btn" onClick={() => setWordIndex(0)} disabled={!anyLoaded || wordIndex === 0}>
-            Restart
+          <button class="btn icon" onClick={() => setWordIndex(0)} disabled={!anyLoaded || wordIndex === 0}>
+            {ICONS.restart}
           </button>
         </div>
 
@@ -455,8 +471,8 @@ export function App() {
                     globalMaxLen={maxLen}
                     onApplyGlobalIndex={(i) => setWordIndex(i)}
                   />
-                  <button class="btn danger" onClick={() => removeTrack(t.id)} title="Remove track">
-                    Remove
+                  <button class="btn danger icon" onClick={() => removeTrack(t.id)} title="Delete track">
+                    {ICONS.remove}
                   </button>
                 </div>
               </div>
@@ -464,9 +480,6 @@ export function App() {
               <div class="reader">
                 <div class="focus-word" aria-live="polite" aria-atomic="true">
                   {current ? renderOrpWord(current) : <span style={{ color: 'var(--muted)' }}>Load a .txt file…</span>}
-                </div>
-                <div class="meta">
-                  <span>{isPlaying ? 'Playing' : 'Paused'}</span>
                 </div>
               </div>
             </div>
@@ -480,7 +493,7 @@ export function App() {
         </div>
 
         <div class="hint">
-          Tip: press <strong>Space</strong> to play/pause, <strong>→</strong> for next, <strong>←</strong> for previous. All tracks advance
+          Tip: press <strong>Space</strong> for {ICONS.play}/{ICONS.pause}, <strong>→</strong> for {ICONS.next}, <strong>←</strong> for {ICONS.prev}. All tracks advance
           together at the same WPM.
         </div>
       </div>
@@ -490,9 +503,8 @@ export function App() {
           <div class="bottom-bar-row">
             <span class="badge">Progress {progressPct}%</span>
             <div class="control-row" style={{ justifyContent: 'flex-end' }}>
-              <span class="badge">{isSeeking ? 'Seeking…' : isPlaying ? 'Playing' : 'Paused'}</span>
-              <button class="btn" onClick={enterOrExitFullscreen} title="Enter fullscreen">
-                Fullscreen
+              <button class="btn icon" onClick={enterOrExitFullscreen} title={`Enter ${ICONS.fullscreen}`}>
+                {ICONS.fullscreen}
               </button>
             </div>
           </div>
@@ -513,8 +525,8 @@ export function App() {
       </div>
 
       {isFullscreen ? (
-        <button class="btn fs-exit-btn" onClick={enterOrExitFullscreen} title="Exit fullscreen">
-          Exit
+        <button class="btn fs-exit-btn icon" onClick={enterOrExitFullscreen} title={`Exit ${ICONS.fullscreen}`}>
+          {ICONS.fullscreen}
         </button>
       ) : null}
     </div>

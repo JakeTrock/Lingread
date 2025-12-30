@@ -170,6 +170,18 @@ select:focus {
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
+  line-height: 1.1;
+}
+
+.btn.icon {
+  /* Normalize icon-only buttons so glyphs like ↻︎ don't look tiny. */
+  font-size: 18px;
+  line-height: 1;
+  padding: 8px 10px;
+  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn:hover {

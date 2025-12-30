@@ -5,6 +5,7 @@ type Track = {
   name: string;
   rawText: string;
   words: string[];
+  fingerprint?: string; // sha256(rawText) hex
 };
 
 const PRESET_WPMS = [150, 200, 250, 300, 350, 400, 500, 650, 800];
@@ -26,6 +27,59 @@ function id(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  const bytes = new Uint8Array(digest);
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function base64UrlEncode(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.slice(i, i + chunk));
+  }
+  const b64 = btoa(bin);
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function base64UrlDecode(s: string): Uint8Array {
+  const padLen = (4 - (s.length % 4)) % 4;
+  const padded = (s + '='.repeat(padLen)).replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(padded);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+type ResumePayloadV1 = {
+  v: 1;
+  fp: string; // sha256 hex of the track text
+  i: number; // word index within this track
+  n?: string; // filename (optional)
+  w?: string; // current word (optional, for human sanity check)
+};
+
+function encodeResumeHash(payload: ResumePayloadV1): string {
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  return `sr1.${base64UrlEncode(bytes)}`;
+}
+
+function decodeResumeHash(hash: string): ResumePayloadV1 {
+  const trimmed = hash.trim();
+  if (!trimmed.startsWith('sr1.')) throw new Error('Not a speedreader v1 hash.');
+  const b64u = trimmed.slice('sr1.'.length);
+  const bytes = base64UrlDecode(b64u);
+  const json = new TextDecoder().decode(bytes);
+  const parsed = JSON.parse(json) as ResumePayloadV1;
+  if (!parsed || parsed.v !== 1) throw new Error('Unsupported hash version.');
+  if (typeof parsed.fp !== 'string' || !parsed.fp) throw new Error('Hash missing fingerprint.');
+  if (typeof parsed.i !== 'number' || !Number.isFinite(parsed.i)) throw new Error('Hash missing index.');
+  return parsed;
+}
+
 function renderOrpWord(word: string) {
   if (!word) return null;
   const clean = word.replace(/[^\p{L}\p{N}']/gu, '');
@@ -45,9 +99,126 @@ function renderOrpWord(word: string) {
   );
 }
 
+function ResumeHashDialog(props: {
+  track: Track;
+  effectiveIndex: number;
+  globalMaxLen: number;
+  onApplyGlobalIndex: (index: number) => void;
+}) {
+  const { track, effectiveIndex, globalMaxLen, onApplyGlobalIndex } = props;
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const [pasteValue, setPasteValue] = useState('');
+  const [status, setStatus] = useState<string | null>(null);
+
+  const currentWord = track.words[effectiveIndex] ?? '';
+  const canHash = Boolean(track.fingerprint && track.words.length);
+
+  const currentHash = useMemo(() => {
+    if (!track.fingerprint || !track.words.length) return '';
+    return encodeResumeHash({
+      v: 1,
+      fp: track.fingerprint,
+      i: effectiveIndex,
+      n: track.name || undefined,
+      w: currentWord || undefined,
+    });
+  }, [track.fingerprint, track.words.length, track.name, effectiveIndex, currentWord]);
+
+  function open() {
+    setStatus(null);
+    setPasteValue('');
+    dialogRef.current?.showModal();
+  }
+
+  function close() {
+    dialogRef.current?.close();
+  }
+
+  async function copyCurrent() {
+    if (!currentHash) return;
+    try {
+      await navigator.clipboard.writeText(currentHash);
+      setStatus('Copied to clipboard.');
+    } catch {
+      setStatus('Could not access clipboard. Select and copy manually.');
+    }
+  }
+
+  function applyPasted() {
+    setStatus(null);
+    if (!track.fingerprint) {
+      setStatus('Load a .txt file for this track first.');
+      return;
+    }
+    let payload: ResumePayloadV1;
+    try {
+      payload = decodeResumeHash(pasteValue);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : 'Invalid hash.');
+      return;
+    }
+    if (payload.fp !== track.fingerprint) {
+      setStatus('This hash does not match the currently loaded text in this track.');
+      return;
+    }
+    const clamped = clamp(Math.trunc(payload.i), 0, Math.max(0, globalMaxLen - 1));
+    onApplyGlobalIndex(clamped);
+    setStatus(`Resumed to word index ${clamped + 1}.`);
+  }
+
+  return (
+    <>
+      <button class="btn" onClick={open} disabled={!canHash} title={canHash ? 'Copy/paste a resume hash' : 'Load a .txt file first'}>
+        Resume hash
+      </button>
+
+      <dialog ref={dialogRef} class="resume-dialog" onClose={() => setStatus(null)}>
+        <div class="resume-dialog-inner">
+          <div class="resume-dialog-head">
+            <strong>Resume hash</strong>
+            <button class="btn" onClick={close} title="Close">
+              Close
+            </button>
+          </div>
+
+          <div class="resume-dialog-body">
+            <div style={{ display: 'grid', gap: 6 }}>
+              <label>Current (updates as you progress)</label>
+              <textarea class="mono" rows={3} readOnly value={currentHash || 'Load a .txt file to generate a hash.'} />
+              <div class="control-row">
+                <button class="btn primary" onClick={copyCurrent} disabled={!currentHash}>
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: 6 }}>
+              <label>Paste a hash to resume this track</label>
+              <textarea
+                class="mono"
+                rows={3}
+                placeholder="Paste sr1.… here"
+                value={pasteValue}
+                onInput={(e) => setPasteValue((e.currentTarget as HTMLTextAreaElement).value)}
+              />
+              <div class="control-row">
+                <button class="btn primary" onClick={applyPasted} disabled={!pasteValue.trim()}>
+                  Apply
+                </button>
+              </div>
+            </div>
+
+            {status ? <div class="hint" style={{ marginTop: 0 }}>{status}</div> : null}
+          </div>
+        </div>
+      </dialog>
+    </>
+  );
+}
+
 export function App() {
   const [tracks, setTracks] = useState<Track[]>(() => [
-    { id: id(), name: 'Track 1', rawText: '', words: [] },
+    { id: id(), name: 'Track 1', rawText: '', words: [], fingerprint: undefined },
   ]);
   const [wordIndex, setWordIndex] = useState(0);
 
@@ -62,19 +233,23 @@ export function App() {
   const timerRef = useRef<number | null>(null);
 
   function addTrack() {
-    setTracks((prev) => [...prev, { id: id(), name: `Track ${prev.length + 1}`, rawText: '', words: [] }]);
+    setTracks((prev) => [
+      ...prev,
+      { id: id(), name: `Track ${prev.length + 1}`, rawText: '', words: [], fingerprint: undefined },
+    ]);
   }
 
   function removeTrack(trackId: string) {
     setTracks((prev) => {
       const next = prev.filter((t) => t.id !== trackId);
-      return next.length ? next : [{ id: id(), name: 'Track 1', rawText: '', words: [] }];
+      return next.length ? next : [{ id: id(), name: 'Track 1', rawText: '', words: [], fingerprint: undefined }];
     });
   }
 
   async function onFile(trackId: string, file: File | null) {
     if (!file) return;
     const text = await file.text();
+    const fp = await sha256Hex(text);
     setTracks((prev) =>
       prev.map((t) =>
         t.id === trackId
@@ -83,6 +258,7 @@ export function App() {
               name: file.name,
               rawText: text,
               words: tokenize(text),
+              fingerprint: fp,
             }
           : t,
       ),
@@ -222,7 +398,8 @@ export function App() {
 
       <div class="tracks">
         {tracks.map((t, idx) => {
-          const current = t.words[wordIndex] ?? '';
+          const effectiveIndex = t.words.length ? clamp(wordIndex, 0, Math.max(0, t.words.length - 1)) : 0;
+          const current = t.words[effectiveIndex] ?? '';
           const progress = t.words.length ? `${Math.min(wordIndex + 1, t.words.length)}/${t.words.length}` : '—';
           return (
             <div class="panel track" key={t.id}>
@@ -238,6 +415,12 @@ export function App() {
                     type="file"
                     accept=".txt,text/plain"
                     onChange={(e) => onFile(t.id, (e.currentTarget as HTMLInputElement).files?.[0] ?? null)}
+                  />
+                  <ResumeHashDialog
+                    track={t}
+                    effectiveIndex={effectiveIndex}
+                    globalMaxLen={maxLen}
+                    onApplyGlobalIndex={(i) => setWordIndex(i)}
                   />
                   <button class="btn danger" onClick={() => removeTrack(t.id)} title="Remove track">
                     Remove

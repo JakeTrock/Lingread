@@ -259,3 +259,59 @@ select:focus {
   font-size: 12px;
 }
 
+.resume-dialog {
+  width: min(860px, calc(100vw - 24px));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.resume-dialog::backdrop {
+  background: color-mix(in oklab, var(--base03), transparent 55%);
+}
+
+.resume-dialog-inner {
+  padding: 14px;
+}
+
+.resume-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.resume-dialog-body {
+  display: grid;
+  gap: 14px;
+}
+
+textarea.mono {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    'Liberation Mono',
+    'Courier New',
+    monospace;
+  font-size: 12px;
+  background: color-mix(in oklab, var(--panel), var(--bg) 40%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 10px;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+}
+
+textarea.mono:focus {
+  border-color: color-mix(in oklab, var(--accent), var(--border) 40%);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 82%);
+}
+

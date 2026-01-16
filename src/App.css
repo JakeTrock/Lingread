@@ -1,0 +1,202 @@
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  background: color-mix(in oklab, var(--bg) 65%, transparent 35%);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 18px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  min-width: 220px;
+}
+.brandTitle {
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--base2);
+}
+.brandSubtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--textDim);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+.control {
+  display: grid;
+  gap: 6px;
+}
+.controlLabel {
+  font-size: 12px;
+  color: var(--textDim);
+}
+
+.fileInput,
+.numberInput {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 88%, black 12%);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.fileInput:focus-visible,
+.numberInput:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid color-mix(in oklab, var(--focus) 55%, transparent 45%);
+  outline-offset: 2px;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 88%, black 12%);
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--blue) 45%, var(--border) 55%);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  border-color: color-mix(in oklab, var(--blue) 55%, var(--border) 45%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--blue) 20%, var(--panel) 80%),
+    color-mix(in oklab, var(--blue) 10%, var(--panel) 90%)
+  );
+  color: color-mix(in oklab, var(--base2) 85%, white 15%);
+}
+
+.main {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 22px 0 40px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 18px 0 14px;
+}
+
+.statusLeft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 55ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 88%, black 12%);
+  color: var(--base2);
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--textDim);
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--textDim);
+  font-size: 13px;
+}
+
+.reader {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--panel) 90%, black 10%);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.22);
+  padding: 26px 26px 28px;
+}
+
+.chunk {
+  font-size: clamp(18px, 2.4vw, 28px);
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.token {
+  white-space: pre-wrap;
+}
+
+.bionicBold {
+  color: color-mix(in oklab, var(--base2) 70%, var(--text) 30%);
+  font-weight: 800;
+}
+
+.bionicRest {
+  color: var(--text);
+  font-weight: 450;
+}
+
+.empty {
+  margin: 14vh auto 0;
+  padding: 26px 22px;
+  border: 1px dashed color-mix(in oklab, var(--border) 70%, transparent 30%);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--panel) 82%, transparent 18%);
+}
+
+.emptyTitle {
+  margin: 0 0 10px;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--base2);
+}
+
+.emptyBody {
+  margin: 0;
+  color: var(--textDim);
+  font-size: 14px;
+}

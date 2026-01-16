@@ -201,8 +201,8 @@
   font-size: 14px;
 }
 
-/* Zen Mode */
-.zenOverlay {
+/* Fullscreen Mode */
+.fullscreenOverlay {
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -215,7 +215,7 @@
   cursor: pointer;
 }
 
-.zenContent {
+.fullscreenContent {
   text-align: center;
   max-width: 80vw;
   font-size: clamp(22px, 4vw, 48px);
@@ -225,17 +225,17 @@
   overflow-wrap: break-word;
 }
 
-.zenContent .bionicBold {
+.fullscreenContent .bionicBold {
   color: #4a4a4a;
   font-weight: 700;
 }
 
-.zenContent .bionicRest {
+.fullscreenContent .bionicRest {
   color: #7a7a7a;
   font-weight: 400;
 }
 
-.zenProgress {
+.fullscreenProgress {
   position: absolute;
   bottom: 3vh;
   left: 50%;

@@ -21,7 +21,7 @@ function App() {
   const [words, setWords] = useState<string[]>([])
   const [wordsPerChunk, setWordsPerChunk] = useState<number>(DEFAULT_WORDS_PER_CHUNK)
   const [chunkIndex, setChunkIndex] = useState<number>(0)
-  const [zenMode, setZenMode] = useState<boolean>(false)
+  const [fullscreenMode, setFullscreenMode] = useState<boolean>(false)
 
   const chunkCount = useMemo(() => {
     if (words.length === 0) return 0
@@ -44,10 +44,10 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // Escape exits zen mode
-      if (e.code === 'Escape' && zenMode) {
+      // Escape exits fullscreen mode
+      if (e.code === 'Escape' && fullscreenMode) {
         e.preventDefault()
-        setZenMode(false)
+        setFullscreenMode(false)
         return
       }
 
@@ -55,7 +55,7 @@ function App() {
       if (e.code === 'Space' && hasText) {
         if (e.repeat) return
         if (chunkCount <= 1) return
-        if (!zenMode && isTypingIntoInput()) return
+        if (!fullscreenMode && isTypingIntoInput()) return
 
         e.preventDefault()
         setChunkIndex((idx) => Math.min(idx + 1, chunkCount - 1))
@@ -64,7 +64,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown, { passive: false })
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [chunkCount, hasText, zenMode])
+  }, [chunkCount, hasText, fullscreenMode])
 
   async function onPickFile(file: File) {
     const text = await file.text()
@@ -136,11 +136,11 @@ function App() {
             <button
               type="button"
               className="btn"
-              onClick={() => setZenMode(true)}
+              onClick={() => setFullscreenMode(true)}
               disabled={!hasText}
-              title="Enter zen mode (Esc to exit)"
+              title="Enter fullscreen mode (Esc to exit)"
             >
-              Zen
+              Fullscreen
             </button>
           </div>
         </div>
@@ -179,12 +179,12 @@ function App() {
         )}
       </main>
 
-      {zenMode && hasText && (
-        <div className="zenOverlay" onClick={() => setZenMode(false)}>
-          <div className="zenContent">
+      {fullscreenMode && hasText && (
+        <div className="fullscreenOverlay" onClick={() => setFullscreenMode(false)}>
+          <div className="fullscreenContent">
             <BionicChunk words={currentWords} />
           </div>
-          <div className="zenProgress">
+          <div className="fullscreenProgress">
             {chunkIndex + 1} / {chunkCount}
           </div>
         </div>

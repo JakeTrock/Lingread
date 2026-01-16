@@ -106,16 +106,18 @@ function App() {
               className="btn"
               onClick={() => setChunkIndex((i) => Math.max(0, i - 1))}
               disabled={!hasPrev}
+              title="Previous chunk"
             >
-              Prev
+              ‹
             </button>
             <button
               type="button"
               className="btn btnPrimary"
               onClick={() => setChunkIndex((i) => Math.min(chunkCount - 1, i + 1))}
               disabled={!hasNext}
+              title="Next chunk"
             >
-              Next
+              ›
             </button>
             <button
               type="button"
@@ -124,7 +126,7 @@ function App() {
               disabled={!hasText}
               title="Enter fullscreen mode (Esc to exit)"
             >
-              Fullscreen
+              ⛶
             </button>
           </div>
         </div>

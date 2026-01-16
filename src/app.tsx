@@ -21,6 +21,7 @@ function App() {
   const [words, setWords] = useState<string[]>([])
   const [wordsPerChunk, setWordsPerChunk] = useState<number>(DEFAULT_WORDS_PER_CHUNK)
   const [chunkIndex, setChunkIndex] = useState<number>(0)
+  const [zenMode, setZenMode] = useState<boolean>(false)
 
   const chunkCount = useMemo(() => {
     if (words.length === 0) return 0
@@ -42,21 +43,28 @@ function App() {
   }, [chunkCount, hasText])
 
   useEffect(() => {
-    if (!hasText) return
-
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Space') return
-      if (e.repeat) return
-      if (chunkCount <= 1) return
-      if (isTypingIntoInput()) return
+      // Escape exits zen mode
+      if (e.code === 'Escape' && zenMode) {
+        e.preventDefault()
+        setZenMode(false)
+        return
+      }
 
-      e.preventDefault()
-      setChunkIndex((idx) => Math.min(idx + 1, chunkCount - 1))
+      // Space advances chunk
+      if (e.code === 'Space' && hasText) {
+        if (e.repeat) return
+        if (chunkCount <= 1) return
+        if (!zenMode && isTypingIntoInput()) return
+
+        e.preventDefault()
+        setChunkIndex((idx) => Math.min(idx + 1, chunkCount - 1))
+      }
     }
 
     window.addEventListener('keydown', onKeyDown, { passive: false })
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [chunkCount, hasText])
+  }, [chunkCount, hasText, zenMode])
 
   async function onPickFile(file: File) {
     const text = await file.text()
@@ -71,7 +79,7 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <div className="brandTitle">Lingread</div>
-          <div className="brandSubtitle">Solarized bionic reading • Space advances one chunk</div>
+          <div className="brandSubtitle">Bionic reading the right way</div>
         </div>
 
         <div className="controls" role="group" aria-label="Reader controls">
@@ -125,6 +133,15 @@ function App() {
             >
               Next
             </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setZenMode(true)}
+              disabled={!hasText}
+              title="Enter zen mode (Esc to exit)"
+            >
+              Zen
+            </button>
           </div>
         </div>
       </header>
@@ -161,6 +178,17 @@ function App() {
           </>
         )}
       </main>
+
+      {zenMode && hasText && (
+        <div className="zenOverlay" onClick={() => setZenMode(false)}>
+          <div className="zenContent">
+            <BionicChunk words={currentWords} />
+          </div>
+          <div className="zenProgress">
+            {chunkIndex + 1} / {chunkCount}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

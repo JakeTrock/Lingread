@@ -200,3 +200,48 @@
   color: var(--textDim);
   font-size: 14px;
 }
+
+/* Zen Mode */
+.zenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #f5f0e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8vh 10vw;
+  cursor: pointer;
+}
+
+.zenContent {
+  text-align: center;
+  max-width: 80vw;
+  font-size: clamp(22px, 4vw, 48px);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.zenContent .bionicBold {
+  color: #4a4a4a;
+  font-weight: 700;
+}
+
+.zenContent .bionicRest {
+  color: #7a7a7a;
+  font-weight: 400;
+}
+
+.zenProgress {
+  position: absolute;
+  bottom: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: #a0a0a0;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}

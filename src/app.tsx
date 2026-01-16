@@ -84,22 +84,6 @@ function App() {
 
         <div className="controls" role="group" aria-label="Reader controls">
           <label className="control">
-            <span className="controlLabel">Text file</span>
-            <input
-              className="fileInput"
-              type="file"
-              accept=".txt,text/plain"
-              onChange={(e) => {
-                const file = e.currentTarget.files?.[0]
-                if (!file) return
-                void onPickFile(file)
-                // allow re-uploading the same file
-                e.currentTarget.value = ''
-              }}
-            />
-          </label>
-
-          <label className="control">
             <span className="controlLabel">Words / chunk</span>
             <input
               className="numberInput"
@@ -151,8 +135,21 @@ function App() {
           <div className="empty">
             <h1 className="emptyTitle">Upload a .txt file</h1>
             <p className="emptyBody">
-              Set <strong>Words / chunk</strong> (default {DEFAULT_WORDS_PER_CHUNK}). Press <kbd>Space</kbd> to advance one chunk.
+              Set <strong>Words / chunk</strong> above, then tap or press <kbd>Space</kbd> to advance.
             </p>
+            <label className="uploadBtn">
+              Choose file
+              <input
+                type="file"
+                accept=".txt,text/plain"
+                onChange={(e) => {
+                  const file = e.currentTarget.files?.[0]
+                  if (!file) return
+                  void onPickFile(file)
+                  e.currentTarget.value = ''
+                }}
+              />
+            </label>
           </div>
         ) : (
           <>

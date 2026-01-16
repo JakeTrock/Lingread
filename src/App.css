@@ -196,9 +196,48 @@
 }
 
 .emptyBody {
-  margin: 0;
+  margin: 0 0 18px;
   color: var(--textDim);
   font-size: 14px;
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--blue) 55%, var(--border) 45%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--blue) 20%, var(--panel) 80%),
+    color-mix(in oklab, var(--blue) 10%, var(--panel) 90%)
+  );
+  color: color-mix(in oklab, var(--base2) 85%, white 15%);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.uploadBtn:hover {
+  border-color: var(--blue);
+}
+
+.uploadBtn:focus-within {
+  outline: 3px solid color-mix(in oklab, var(--focus) 55%, transparent 45%);
+  outline-offset: 2px;
+}
+
+.uploadBtn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 /* Fullscreen Mode */

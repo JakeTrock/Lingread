@@ -165,13 +165,19 @@ function App() {
               </div>
               <div className="statusRight">
                 <span className="hint">
-                  <kbd>Space</kbd> next
+                  <kbd>Space</kbd> or tap to advance
                 </span>
               </div>
             </div>
 
             <section className="reader" aria-label="Bionic reading area">
-              <div className="chunk" aria-live="polite" aria-atomic="true">
+              <div
+                className="chunk"
+                aria-live="polite"
+                aria-atomic="true"
+                onClick={() => hasNext && setChunkIndex((i) => i + 1)}
+                style={{ cursor: hasNext ? 'pointer' : 'default' }}
+              >
                 <BionicChunk words={currentWords} />
               </div>
             </section>
@@ -181,7 +187,14 @@ function App() {
 
       {fullscreenMode && hasText && (
         <div className="fullscreenOverlay" onClick={() => setFullscreenMode(false)}>
-          <div className="fullscreenContent">
+          <div
+            className="fullscreenContent"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (hasNext) setChunkIndex((i) => i + 1)
+            }}
+            style={{ cursor: hasNext ? 'pointer' : 'default' }}
+          >
             <BionicChunk words={currentWords} />
           </div>
           <div className="fullscreenProgress">

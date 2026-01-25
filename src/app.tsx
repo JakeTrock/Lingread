@@ -4,9 +4,17 @@ import { BionicChunk } from './lib/bionic'
 import { splitIntoWords } from './lib/text'
 
 const DEFAULT_WORDS_PER_CHUNK = 40
+const STORAGE_KEY_PREFIX = 'lingread:'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
+}
+
+async function sha256Hex(data: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data))
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 function isTypingIntoInput() {
@@ -29,6 +37,7 @@ function App() {
   })()
   const [chunkIndex, setChunkIndex] = useState<number>(0)
   const [fullscreenMode, setFullscreenMode] = useState<boolean>(false)
+  const [fileHash, setFileHash] = useState<string | null>(null)
 
   const chunkCount = useMemo(() => {
     if (words.length === 0) return 0
@@ -82,12 +91,41 @@ function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [chunkCount, hasText, hasPrev, fullscreenMode])
 
+  // Persist position and chunk size to localStorage keyed by file content hash
+  useEffect(() => {
+    if (!fileHash || !hasText) return
+    const key = `${STORAGE_KEY_PREFIX}${fileHash}`
+    const value = JSON.stringify({ chunkIndex, wordsPerChunk })
+    localStorage.setItem(key, value)
+  }, [fileHash, hasText, chunkIndex, wordsPerChunk])
+
   async function onPickFile(file: File) {
     const text = await file.text()
+    const hash = await sha256Hex(text)
     const nextWords = splitIntoWords(text)
     setWords(nextWords)
     setFilename(file.name)
-    setChunkIndex(0)
+    setFileHash(hash)
+
+    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${hash}`)
+    if (raw) {
+      try {
+        const o = JSON.parse(raw) as { chunkIndex?: number; wordsPerChunk?: number }
+        const wpc = (() => {
+          const n = Number(o.wordsPerChunk)
+          if (!Number.isFinite(n)) return DEFAULT_WORDS_PER_CHUNK
+          return clamp(Math.trunc(n), 5, 200)
+        })()
+        const chunkCount = Math.max(1, Math.ceil(nextWords.length / wpc))
+        const idx = clamp(Math.trunc(Number(o.chunkIndex)) || 0, 0, chunkCount - 1)
+        setWordsPerChunkInput(String(wpc))
+        setChunkIndex(idx)
+      } catch {
+        setChunkIndex(0)
+      }
+    } else {
+      setChunkIndex(0)
+    }
   }
 
   return (

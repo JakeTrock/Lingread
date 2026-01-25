@@ -19,7 +19,14 @@ function isTypingIntoInput() {
 function App() {
   const [filename, setFilename] = useState<string | null>(null)
   const [words, setWords] = useState<string[]>([])
-  const [wordsPerChunk, setWordsPerChunk] = useState<number>(DEFAULT_WORDS_PER_CHUNK)
+  const [wordsPerChunkInput, setWordsPerChunkInput] = useState<string>(String(DEFAULT_WORDS_PER_CHUNK))
+
+  const wordsPerChunk = (() => {
+    if (wordsPerChunkInput === '') return DEFAULT_WORDS_PER_CHUNK
+    const n = Number(wordsPerChunkInput)
+    if (!Number.isFinite(n)) return DEFAULT_WORDS_PER_CHUNK
+    return clamp(Math.trunc(n), 5, 200)
+  })()
   const [chunkIndex, setChunkIndex] = useState<number>(0)
   const [fullscreenMode, setFullscreenMode] = useState<boolean>(false)
 
@@ -60,11 +67,20 @@ function App() {
         e.preventDefault()
         setChunkIndex((idx) => Math.min(idx + 1, chunkCount - 1))
       }
+
+      // Backspace goes back a chunk (same as back arrow)
+      if (e.code === 'Backspace' && hasPrev) {
+        if (e.repeat) return
+        if (!fullscreenMode && isTypingIntoInput()) return
+
+        e.preventDefault()
+        setChunkIndex((idx) => Math.max(0, idx - 1))
+      }
     }
 
     window.addEventListener('keydown', onKeyDown, { passive: false })
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [chunkCount, hasText, fullscreenMode])
+  }, [chunkCount, hasText, hasPrev, fullscreenMode])
 
   async function onPickFile(file: File) {
     const text = await file.text()
@@ -91,12 +107,8 @@ function App() {
               inputMode="numeric"
               min={5}
               max={200}
-              value={wordsPerChunk}
-              onChange={(e) => {
-                const n = Number(e.currentTarget.value)
-                if (!Number.isFinite(n)) return
-                setWordsPerChunk(clamp(Math.trunc(n), 5, 200))
-              }}
+              value={wordsPerChunkInput}
+              onChange={(e) => setWordsPerChunkInput(e.currentTarget.value)}
             />
           </label>
 
@@ -106,7 +118,7 @@ function App() {
               className="btn"
               onClick={() => setChunkIndex((i) => Math.max(0, i - 1))}
               disabled={!hasPrev}
-              title="Previous chunk"
+              title="Previous chunk (Backspace)"
             >
               ‹
             </button>
@@ -164,7 +176,7 @@ function App() {
               </div>
               <div className="statusRight">
                 <span className="hint">
-                  <kbd>Space</kbd> or tap to advance
+                  <kbd>Space</kbd> next · <kbd>Backspace</kbd> back · or tap
                 </span>
               </div>
             </div>

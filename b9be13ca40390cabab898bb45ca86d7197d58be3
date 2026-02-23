@@ -1,0 +1,27 @@
+src/app.tsx
+  9664a46d0e895f39 437-445,458-461,466-469,479,509-510,532-533,535-536
+src/lib/annotations.ts
+  9664a46d0e895f39 1-66
+src/App.css
+  9664a46d0e895f39 144-171,183,191-229,253-302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "b9be13ca40390cabab898bb45ca86d7197d58be3",
+  "prompts": {
+    "9664a46d0e895f39": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "01f73a55-e41a-4ce9-80db-f1fac32bfa17",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Jacob Trock <jgh@geocrypt.me>",
+      "messages": [],
+      "total_additions": 290,
+      "total_deletions": 101,
+      "accepted_lines": 210,
+      "overriden_lines": 0
+    }
+  }
+}

@@ -1,6 +1,13 @@
 import './App.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import {
+  exportAnnotationsAsText,
+  getStoredAnnotations,
+  saveAnnotations,
+  sanitizeExportFilename,
+  type Annotation,
+} from './lib/annotations'
 import { BionicChunk } from './lib/bionic'
 import { splitIntoWords } from './lib/text'
 
@@ -54,6 +61,9 @@ function App() {
   const [fullscreenMode, setFullscreenMode] = useState<boolean>(false)
   const [isPipOpen, setIsPipOpen] = useState<boolean>(false)
   const [fileHash, setFileHash] = useState<string | null>(null)
+  const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [annotationDraft, setAnnotationDraft] = useState('')
+  const [isEditingAnnotation, setIsEditingAnnotation] = useState(false)
   const pipWindowRef = useRef<Window | null>(null)
   const pipRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
 
@@ -67,6 +77,11 @@ function App() {
     return words.slice(start, start + wordsPerChunk)
   }, [chunkIndex, words, wordsPerChunk])
 
+  const currentChunkAnnotation = useMemo(
+    () => annotations.find((a) => a.chunkIndex === chunkIndex),
+    [annotations, chunkIndex]
+  )
+
   const hasText = words.length > 0
   const hasPrev = hasText && chunkIndex > 0
   const hasNext = hasText && chunkIndex < chunkCount - 1
@@ -75,6 +90,11 @@ function App() {
     if (!hasText) return
     setChunkIndex((idx) => clamp(idx, 0, Math.max(0, chunkCount - 1)))
   }, [chunkCount, hasText])
+
+  // Close annotation form when switching chunks
+  useEffect(() => {
+    setIsEditingAnnotation(false)
+  }, [chunkIndex])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -262,6 +282,9 @@ function App() {
     setWords(nextWords)
     setFilename(file.name)
     setFileHash(hash)
+    setAnnotations(getStoredAnnotations(hash))
+    setIsEditingAnnotation(false)
+    setAnnotationDraft('')
 
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${hash}`)
     if (raw) {
@@ -282,6 +305,44 @@ function App() {
     } else {
       setChunkIndex(0)
     }
+  }
+
+  function addOrUpdateAnnotation(text: string) {
+    if (!fileHash || text.trim() === '') return
+    const next: Annotation[] = annotations
+      .filter((a) => a.chunkIndex !== chunkIndex)
+      .concat({ chunkIndex, text: text.trim(), createdAt: new Date().toISOString() })
+    setAnnotations(next)
+    saveAnnotations(fileHash, next)
+    setAnnotationDraft('')
+    setIsEditingAnnotation(false)
+  }
+
+  function deleteCurrentAnnotation() {
+    if (!fileHash) return
+    const next = annotations.filter((a) => a.chunkIndex !== chunkIndex)
+    setAnnotations(next)
+    saveAnnotations(fileHash, next)
+    setAnnotationDraft('')
+    setIsEditingAnnotation(false)
+  }
+
+  function exportAnnotationsToFile() {
+    if (!fileHash || !filename || annotations.length === 0) return
+    const getChunkWords = (i: number) =>
+      words.slice(i * wordsPerChunk, (i + 1) * wordsPerChunk)
+    const text = exportAnnotationsAsText(
+      filename,
+      annotations,
+      getChunkWords
+    )
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = sanitizeExportFilename(filename)
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -373,6 +434,15 @@ function App() {
             <div className="status">
               <div className="statusLeft">
                 <span className="pill">{filename ?? 'Untitled'}</span>
+                <button
+                  type="button"
+                  className="pillBtn"
+                  onClick={exportAnnotationsToFile}
+                  disabled={annotations.length === 0}
+                  title="Export all annotations as a text file"
+                >
+                  Export annotations
+                </button>
                 <span className="muted">
                   {words.length.toLocaleString()} words • chunk {chunkIndex + 1} / {chunkCount}
                 </span>
@@ -385,6 +455,18 @@ function App() {
             </div>
 
             <section className="reader" aria-label="Bionic reading area">
+              {!currentChunkAnnotation && !isEditingAnnotation && (
+                <button
+                  type="button"
+                  className="readerCorner"
+                  onClick={() => {
+                    setAnnotationDraft('')
+                    setIsEditingAnnotation(true)
+                  }}
+                  title="Add note for this chunk"
+                  aria-label="Add note for this chunk"
+                />
+              )}
               <div
                 className="chunk"
                 aria-live="polite"
@@ -394,6 +476,65 @@ function App() {
               >
                 <BionicChunk words={currentWords} />
               </div>
+              {(isEditingAnnotation || currentChunkAnnotation) && (
+                <div className="annotationBlock" aria-label="Annotation for current chunk">
+                  {isEditingAnnotation ? (
+                    <div className="annotationForm">
+                      <textarea
+                        className="annotationTextarea"
+                        value={annotationDraft}
+                        onChange={(e) => setAnnotationDraft(e.currentTarget.value)}
+                        placeholder="Add a note for this chunk..."
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="annotationFormActions">
+                        <button
+                          type="button"
+                          className="btn btnPrimary"
+                          onClick={() => addOrUpdateAnnotation(annotationDraft)}
+                          disabled={annotationDraft.trim() === ''}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => {
+                            setIsEditingAnnotation(false)
+                            setAnnotationDraft(currentChunkAnnotation?.text ?? '')
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : currentChunkAnnotation ? (
+                    <div className="annotationDisplay">
+                      <p className="annotationText">{currentChunkAnnotation.text}</p>
+                      <div className="annotationFormActions">
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => {
+                            setAnnotationDraft(currentChunkAnnotation.text)
+                            setIsEditingAnnotation(true)
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={deleteCurrentAnnotation}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </section>
           </>
         )}

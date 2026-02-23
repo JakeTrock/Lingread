@@ -1,10 +1,25 @@
 import './App.css'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { createRoot } from 'react-dom/client'
 import { BionicChunk } from './lib/bionic'
 import { splitIntoWords } from './lib/text'
 
 const DEFAULT_WORDS_PER_CHUNK = 40
 const STORAGE_KEY_PREFIX = 'lingread:'
+
+// Inline CSS for PiP document (matches fullscreen look)
+const PIP_DOCUMENT_STYLES = `
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; min-height: 100vh; background: #f5f0e1; font-family: system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  #pip-root { width: 100%; max-width: 100%; }
+  .pipContent { text-align: center; font-size: clamp(18px, 4vw, 28px); line-height: 1.7; letter-spacing: 0.02em;
+    word-wrap: break-word; overflow-wrap: break-word; }
+  .pipContent .bionicBold { color: #4a4a4a; font-weight: 700; }
+  .pipContent .bionicRest { color: #7a7a7a; font-weight: 400; }
+  .token { white-space: pre-wrap; }
+  .pipProgress { margin-top: 8px; font-size: 12px; color: #a0a0a0; }
+`
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -37,7 +52,10 @@ function App() {
   })()
   const [chunkIndex, setChunkIndex] = useState<number>(0)
   const [fullscreenMode, setFullscreenMode] = useState<boolean>(false)
+  const [isPipOpen, setIsPipOpen] = useState<boolean>(false)
   const [fileHash, setFileHash] = useState<string | null>(null)
+  const pipWindowRef = useRef<Window | null>(null)
+  const pipRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
 
   const chunkCount = useMemo(() => {
     if (words.length === 0) return 0
@@ -60,11 +78,19 @@ function App() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      // Escape exits fullscreen mode
-      if (e.code === 'Escape' && fullscreenMode) {
-        e.preventDefault()
-        setFullscreenMode(false)
-        return
+      // Escape exits fullscreen or closes PiP
+      if (e.code === 'Escape') {
+        const pip = pipWindowRef.current
+        if (pip && !pip.closed) {
+          e.preventDefault()
+          pip.close()
+          return
+        }
+        if (fullscreenMode) {
+          e.preventDefault()
+          setFullscreenMode(false)
+          return
+        }
       }
 
       // Space advances chunk
@@ -90,6 +116,136 @@ function App() {
     window.addEventListener('keydown', onKeyDown, { passive: false })
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [chunkCount, hasText, hasPrev, fullscreenMode])
+
+  // PiP window sends chunk nav via postMessage
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return
+      const d = e.data as { type?: string; direction?: number } | undefined
+      if (d?.type !== 'lingread:chunk' || typeof d.direction !== 'number') return
+      setChunkIndex((i) => clamp(i + d.direction!, 0, chunkCount - 1))
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [chunkCount])
+
+  // Sync current chunk (and progress) into PiP when open
+  useEffect(() => {
+    if (!isPipOpen) return
+    const pip = pipWindowRef.current
+    const root = pipRootRef.current
+    if (!pip || pip.closed || !root) return
+    const handlePipKeyDown = (e: React.KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (hasNext) setChunkIndex((i) => Math.min(i + 1, chunkCount - 1))
+      } else if (e.code === 'Backspace') {
+        e.preventDefault()
+        if (hasPrev) setChunkIndex((i) => Math.max(0, i - 1))
+      } else if (e.code === 'Escape') {
+        e.preventDefault()
+        pipWindowRef.current?.close()
+      }
+    }
+    root.render(
+      <>
+        <div
+          className="pipContent"
+          role="button"
+          tabIndex={0}
+          style={{ cursor: hasNext ? 'pointer' : 'default' }}
+          onClick={() => hasNext && setChunkIndex((i) => Math.min(i + 1, chunkCount - 1))}
+          onKeyDown={handlePipKeyDown}
+        >
+          <BionicChunk words={currentWords} />
+        </div>
+        <div className="pipProgress">
+          {chunkIndex + 1} / {chunkCount}
+        </div>
+      </>
+    )
+  }, [isPipOpen, currentWords, chunkIndex, chunkCount, hasNext, hasPrev])
+
+  async function openPip() {
+    const pip = pipWindowRef.current
+    if (pip && !pip.closed) {
+      pip.close()
+      return
+    }
+    const api = window.documentPictureInPicture
+    if (!api) return
+    try {
+      const pipWindow = await api.requestWindow({ width: 420, height: 280 })
+      pipWindowRef.current = pipWindow
+      setIsPipOpen(true)
+
+      pipWindow.document.title = 'Lingread – Speed reading'
+      const style = pipWindow.document.createElement('style')
+      style.textContent = PIP_DOCUMENT_STYLES
+      pipWindow.document.head.appendChild(style)
+      const container = pipWindow.document.createElement('div')
+      container.id = 'pip-root'
+      pipWindow.document.body.appendChild(container)
+
+      const root = createRoot(container)
+      pipRootRef.current = root
+      root.render(
+        <>
+          <div
+            className="pipContent"
+            role="button"
+            tabIndex={0}
+            style={{ cursor: hasNext ? 'pointer' : 'default' }}
+            onClick={() => hasNext && setChunkIndex((i) => Math.min(i + 1, chunkCount - 1))}
+            onKeyDown={(e) => {
+              if (e.code === 'Space') {
+                e.preventDefault()
+                if (hasNext) setChunkIndex((i) => Math.min(i + 1, chunkCount - 1))
+              } else if (e.code === 'Backspace') {
+                e.preventDefault()
+                if (hasPrev) setChunkIndex((i) => Math.max(0, i - 1))
+              } else if (e.code === 'Escape') {
+                e.preventDefault()
+                pipWindowRef.current?.close()
+              }
+            }}
+          >
+            <BionicChunk words={currentWords} />
+          </div>
+          <div className="pipProgress">
+            {chunkIndex + 1} / {chunkCount}
+          </div>
+        </>
+      )
+
+      // Focus the content div so Space/Backspace work immediately without clicking first
+      setTimeout(() => (pipWindow.document.querySelector('.pipContent') as HTMLElement | null)?.focus(), 0)
+
+      // Fallback: document-level keydown in case focus is elsewhere in the PiP window
+      const origin = window.location.origin
+      pipWindow.document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.code === 'Space') {
+          e.preventDefault()
+          window.opener?.postMessage({ type: 'lingread:chunk', direction: 1 }, origin)
+        } else if (e.code === 'Backspace') {
+          e.preventDefault()
+          window.opener?.postMessage({ type: 'lingread:chunk', direction: -1 }, origin)
+        } else if (e.code === 'Escape') {
+          e.preventDefault()
+          pipWindow.close()
+        }
+      })
+
+      pipWindow.addEventListener('pagehide', () => {
+        root.unmount()
+        pipWindowRef.current = null
+        pipRootRef.current = null
+        setIsPipOpen(false)
+      })
+    } catch {
+      // Not supported, no user gesture, or user denied
+    }
+  }
 
   // Persist position and chunk size to localStorage keyed by file content hash
   useEffect(() => {
@@ -177,6 +333,15 @@ function App() {
               title="Enter fullscreen mode (Esc to exit)"
             >
               ⛶
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void openPip()}
+              disabled={!hasText || !('documentPictureInPicture' in window)}
+              title="Speed reading window (Picture-in-Picture). Space next, Backspace back, Esc to close."
+            >
+              PiP
             </button>
           </div>
         </div>

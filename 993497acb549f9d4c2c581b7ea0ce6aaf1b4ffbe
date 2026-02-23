@@ -1,0 +1,27 @@
+.cursor/.gitignore
+  9664a46d0e895f39 1
+src/global.d.ts
+  9664a46d0e895f39 1-14
+src/app.tsx
+  9664a46d0e895f39 2-3,10-23,55,57-58,81-89,93,120-248,337-344
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "993497acb549f9d4c2c581b7ea0ce6aaf1b4ffbe",
+  "prompts": {
+    "9664a46d0e895f39": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "01f73a55-e41a-4ce9-80db-f1fac32bfa17",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "Jacob Trock <jgh@geocrypt.me>",
+      "messages": [],
+      "total_additions": 188,
+      "total_deletions": 8,
+      "accepted_lines": 183,
+      "overriden_lines": 0
+    }
+  }
+}

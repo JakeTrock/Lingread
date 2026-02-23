@@ -22,6 +22,8 @@ const PIP_DOCUMENT_STYLES = `
   #pip-root { width: 100%; max-width: 100%; }
   .pipContent { text-align: center; font-size: clamp(18px, 4vw, 28px); line-height: 1.7; letter-spacing: 0.02em;
     word-wrap: break-word; overflow-wrap: break-word; }
+  .pipContent:focus { outline: none; }
+  .pipContent:focus-visible { outline: none; }
   .pipContent .bionicBold { color: #4a4a4a; font-weight: 700; }
   .pipContent .bionicRest { color: #7a7a7a; font-weight: 400; }
   .token { white-space: pre-wrap; }

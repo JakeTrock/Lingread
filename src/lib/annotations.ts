@@ -61,6 +61,6 @@ export function sanitizeExportFilename(originalName: string): string {
   const base = originalName.replace(/^.*[/\\]/, '').trim() || 'annotations'
   const safe = base.replace(/[^\w\s.-]/gi, '-').replace(/\s+/g, '-')
   const name = safe || 'annotations'
-  const withoutExt = name.replace(/\.txt$/i, '')
+  const withoutExt = name.replace(/\.(txt|pdf|epub)$/i, '')
   return `annotations-${withoutExt}.txt`
 }

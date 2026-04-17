@@ -1,6 +1,6 @@
 # Lingread — Solarized Bionic Reading (Vite)
 
-Upload a `.txt` file, set a **words-per-chunk** rate (default **40**), and press **Space** to advance one chunk at a time.
+Upload a `.txt`, `.pdf`, or `.epub` file, set a **words-per-chunk** rate (default **40**), and press **Space** to advance one chunk at a time.
 
 ## Run it
 
@@ -11,7 +11,7 @@ npm run dev
 
 ## Controls
 
-- **Upload**: pick a `.txt` file using the “Text file” input
+- **Upload**: pick a `.txt`, `.pdf`, or `.epub` file
 - **Words / chunk**: number input (clamped to 5–200)
 - **Advance**: press **Space** to go to the next chunk
 - **Buttons**: use **Prev / Next** as needed

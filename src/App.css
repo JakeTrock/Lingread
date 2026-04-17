@@ -174,6 +174,12 @@
   font-size: 13px;
 }
 
+.errorText {
+  margin: 0;
+  color: color-mix(in oklab, #ff7a6f 78%, var(--base2) 22%);
+  font-size: 13px;
+}
+
 .hint {
   color: var(--textDim);
   font-size: 13px;
@@ -319,6 +325,7 @@
   margin: 0 0 18px;
   color: var(--textDim);
   font-size: 14px;
+  line-height: 1.6;
 }
 
 .uploadBtn {

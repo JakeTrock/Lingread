@@ -9,6 +9,11 @@ import {
   type Annotation,
 } from './lib/annotations'
 import { BionicChunk } from './lib/bionic'
+import {
+  extractTextFromDocument,
+  SUPPORTED_DOCUMENT_ACCEPT,
+  SUPPORTED_DOCUMENT_LABEL,
+} from './lib/documentText'
 import { splitIntoWords } from './lib/text'
 
 const DEFAULT_WORDS_PER_CHUNK = 40
@@ -66,6 +71,7 @@ function App() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [annotationDraft, setAnnotationDraft] = useState('')
   const [isEditingAnnotation, setIsEditingAnnotation] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const pipWindowRef = useRef<Window | null>(null)
   const pipRootRef = useRef<ReturnType<typeof createRoot> | null>(null)
 
@@ -278,34 +284,45 @@ function App() {
   }, [fileHash, hasText, chunkIndex, wordsPerChunk])
 
   async function onPickFile(file: File) {
-    const text = await file.text()
-    const hash = await sha256Hex(text)
-    const nextWords = splitIntoWords(text)
-    setWords(nextWords)
-    setFilename(file.name)
-    setFileHash(hash)
-    setAnnotations(getStoredAnnotations(hash))
-    setIsEditingAnnotation(false)
-    setAnnotationDraft('')
+    setLoadError(null)
 
-    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${hash}`)
-    if (raw) {
-      try {
-        const o = JSON.parse(raw) as { chunkIndex?: number; wordsPerChunk?: number }
-        const wpc = (() => {
-          const n = Number(o.wordsPerChunk)
-          if (!Number.isFinite(n)) return DEFAULT_WORDS_PER_CHUNK
-          return clamp(Math.trunc(n), 5, 200)
-        })()
-        const chunkCount = Math.max(1, Math.ceil(nextWords.length / wpc))
-        const idx = clamp(Math.trunc(Number(o.chunkIndex)) || 0, 0, chunkCount - 1)
-        setWordsPerChunkInput(String(wpc))
-        setChunkIndex(idx)
-      } catch {
+    try {
+      const text = await extractTextFromDocument(file)
+      if (text.trim() === '') {
+        throw new Error('This file does not contain readable text.')
+      }
+
+      const hash = await sha256Hex(text)
+      const nextWords = splitIntoWords(text)
+      setWords(nextWords)
+      setFilename(file.name)
+      setFileHash(hash)
+      setAnnotations(getStoredAnnotations(hash))
+      setIsEditingAnnotation(false)
+      setAnnotationDraft('')
+
+      const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${hash}`)
+      if (raw) {
+        try {
+          const o = JSON.parse(raw) as { chunkIndex?: number; wordsPerChunk?: number }
+          const wpc = (() => {
+            const n = Number(o.wordsPerChunk)
+            if (!Number.isFinite(n)) return DEFAULT_WORDS_PER_CHUNK
+            return clamp(Math.trunc(n), 5, 200)
+          })()
+          const chunkCount = Math.max(1, Math.ceil(nextWords.length / wpc))
+          const idx = clamp(Math.trunc(Number(o.chunkIndex)) || 0, 0, chunkCount - 1)
+          setWordsPerChunkInput(String(wpc))
+          setChunkIndex(idx)
+        } catch {
+          setChunkIndex(0)
+        }
+      } else {
         setChunkIndex(0)
       }
-    } else {
-      setChunkIndex(0)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not read this file.'
+      setLoadError(message)
     }
   }
 
@@ -413,15 +430,17 @@ function App() {
       <main className="main">
         {!hasText ? (
           <div className="empty">
-            <h1 className="emptyTitle">Upload a .txt file</h1>
+            <h1 className="emptyTitle">Upload a text document</h1>
             <p className="emptyBody">
+              Choose {SUPPORTED_DOCUMENT_LABEL}.<br />
               Set <strong>Words / chunk</strong> above, then tap or press <kbd>Space</kbd> to advance.
             </p>
+            {loadError ? <p className="errorText">{loadError}</p> : null}
             <label className="uploadBtn">
               Choose file
               <input
                 type="file"
-                accept=".txt,text/plain"
+                accept={SUPPORTED_DOCUMENT_ACCEPT}
                 onChange={(e) => {
                   const file = e.currentTarget.files?.[0]
                   if (!file) return
@@ -448,6 +467,7 @@ function App() {
                 <span className="muted">
                   {words.length.toLocaleString()} words • chunk {chunkIndex + 1} / {chunkCount}
                 </span>
+                {loadError ? <span className="errorText">{loadError}</span> : null}
               </div>
               <div className="statusRight">
                 <span className="hint">

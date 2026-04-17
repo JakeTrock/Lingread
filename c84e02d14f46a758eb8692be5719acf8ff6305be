@@ -1,0 +1,23 @@
+package.json
+  424804b3862b9308 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "c84e02d14f46a758eb8692be5719acf8ff6305be",
+  "prompts": {
+    "424804b3862b9308": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019d9d90-eead-75e1-bfbf-27ae8cc2a57c",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Jacob Trock",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
